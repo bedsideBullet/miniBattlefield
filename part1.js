@@ -37,52 +37,49 @@ const placeShips = (numOfShips) => {
 
 placeShips(numOfShips);
 
-console.log("Battleship Game - Grid Layout:");
-const grid = buildGrid(gridSize);
-for (let i = 0; i < gridSize; i++) {
-  console.log(grid[i].join(" "));
-}
-
-while (numOfShips > 0) {
-  const target = rls.question("Enter a location to strike (e.g., A2): ");
-
-  const row = rows.indexOf(target[0].toUpperCase());
-  const col = parseInt(target.substring(1)) - 1;
-
-  if (areasHit[target]) {
-    console.log("You have already picked this location. Miss!");
-  } else if (shipLocations[row] && shipLocations[row][col] === true) {
-    areasHit[target] = true;
-    shipLocations[row][col] = false;
-    numOfShips--;
-    console.log(
-      "Hit! You have sunk a battleship!",
-      numOfShips.toString(),
-      "remaining"
-    );
-  } else {
-    console.log("Miss!");
-    areasHit[target] = true;
-  }
-}
-
-let win;
-do {
-  win = rls.question(
+const restartGame = () => {
+  const win = rls.keyInYNStrict(
     "You have destroyed all battleships. Would you like to play again? (Y/N): "
   );
-} while (win.toUpperCase() !== "Y" && win.toUpperCase() !== "N");
+  if (win) {
+    shipLocations = {};
+    areasHit = {};
+    numOfShips = 2;
+    placeShips(numOfShips);
 
-if (win.toUpperCase() === "Y") {
-  shipLocations = {};
-  areasHit = {};
-  placeShips(numOfShips);
-  numOfShips = 2;
-  console.log("Battleship Game - Grid Layout:");
-  const newGrid = buildGrid(gridSize);
-  for (let i = 0; i < gridSize; i++) {
-    console.log(newGrid[i].join(" "));
+    gameplay();
   }
-} else {
-  console.log("Thank you for playing!");
-}
+};
+
+const gameplay = () => {
+  while (numOfShips > 0) {
+    console.log("Battleship Game - Grid Layout:");
+    const grid = buildGrid(gridSize);
+    for (let i = 0; i < gridSize; i++) {
+      console.log(grid[i].join(" "));
+    }
+
+    const target = rls.question("Enter a location to strike (e.g., A2): ");
+
+    const row = rows.indexOf(target[0].toUpperCase());
+    const col = parseInt(target.substring(1)) - 1;
+
+    if (areasHit[target]) {
+      console.log("You have already picked this location. Miss!");
+    } else if (shipLocations[row] && shipLocations[row][col] === true) {
+      areasHit[target] = true;
+      shipLocations[row][col] = false;
+      numOfShips--;
+      console.log(
+        "Hit! You have sunk a battleship!",
+        numOfShips.toString(),
+        "remaining"
+      );
+    } else {
+      console.log("Miss!");
+      areasHit[target] = true;
+    }
+  }
+  restartGame();
+};
+gameplay();

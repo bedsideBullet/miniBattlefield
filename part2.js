@@ -1,10 +1,14 @@
 const rls = require("readline-sync");
 
 const rows = "ABCDEFGHIJ";
-const shipLengths = [2, 3, 3, 4, 5];
+const numOfShips = {
+  2: 1,
+  3: 2,
+  4: 1,
+  5: 1,
+};
 let shipLocations = {};
 let areasHit = {};
-let numOfShips = shipLengths.shipLengths;
 
 function buildGrid(gridSize) {
   let grid = [];
@@ -18,93 +22,103 @@ function buildGrid(gridSize) {
 }
 
 const startGame = rls.keyIn("Press any key to start ");
-const gridSize = rls.question("Enter a grid size. ");
+const gridSize = parseInt(rls.question("Please enter a grid size "));
 
 const placeShips = () => {
-  shipLengths.forEach((length) => {
-    let row, col, orientation;
+  for (const shipSize in numOfShips) {
+    for (let i = 0; i < numOfShips[shipSize]; i++) {
+      let shipPlaced = false;
+      while (!shipPlaced) {
+        const orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
+        let row, col;
+        if (orientation === "horizontal") {
+          row = Math.floor(Math.random() * gridSize);
+          col = Math.floor(Math.random() * (gridSize - shipSize + 1));
+        } else {
+          row = Math.floor(Math.random() * (gridSize - shipSize + 1));
+          col = Math.floor(Math.random() * gridSize);
+        }
 
-    do {
-      row = Math.floor(Math.random() * gridSize);
-      col = Math.floor(Math.random() * gridSize);
-      orientation = Math.random() < 0.5 ? "horizontal" : "vertical";
-    } while (!isValidPlacement(row, col, length, orientation));
+        let validPlacement = true;
+        for (let j = 0; j < shipSize; j++) {
+          const newRow = row + (orientation === "vertical" ? j : 0);
+          const newCol = col + (orientation === "horizontal" ? j : 0);
+          if (
+            newRow < 0 ||
+            newRow >= gridSize ||
+            newCol < 0 ||
+            newCol >= gridSize ||
+            (shipLocations[newRow] && shipLocations[newRow][newCol])
+          ) {
+            validPlacement = false;
+            break;
+          }
+        }
 
-    for (let i = 0; i < length; i++) {
-      if (!shipLocations[row]) {
-        shipLocations[row] = {};
+        if (validPlacement) {
+          for (let j = 0; j < shipSize; j++) {
+            const newRow = row + (orientation === "vertical" ? j : 0);
+            const newCol = col + (orientation === "horizontal" ? j : 0);
+            if (!shipLocations[newRow]) {
+              shipLocations[newRow] = {};
+            }
+            shipLocations[newRow][newCol] = true;
+          }
+          shipPlaced = true;
+        }
       }
-      shipLocations[row][col + i] = true;
-
-      if (orientation === "horizontal") {
-        col++;
-      } else {
-        row++;
-      }
-    }
-  });
-};
-
-const isValidPlacement = (startRow, startCol, length, orientation) => {
-  for (let i = 0; i < length; i++) {
-    const row = startRow + (orientation === "vertical" ? i : 0);
-    const col = startCol + (orientation === "horizontal" ? i : 0);
-
-    if (row >= gridSize || col >= gridSize || shipLocations[row]?.[col]) {
-      return false;
     }
   }
-  return true;
 };
 
 placeShips();
 
-console.log("Battleship Game - Grid Layout:");
-const grid = buildGrid(gridSize);
-for (let i = 0; i < gridSize; i++) {
-  console.log(grid[i].join(" "));
-}
-
-while (numOfShips > 0) {
-  const target = rls.question("Enter a location to strike (e.g., A2): ");
-
-  const row = rows.indexOf(target[0].toUpperCase());
-  const col = parseInt(target.substring(1)) - 1;
-
-  if (areasHit[target]) {
-    console.log("You have already picked this location. Miss!");
-  } else if (shipLocations[row] && shipLocations[row][col] === true) {
-    areasHit[target] = true;
-    shipLocations[row][col] = false;
-    numOfShips--;
-    console.log(
-      "Hit! You have sunk a battleship!",
-      numOfShips.toString(),
-      "remaining"
-    );
-  } else {
-    console.log("Miss!");
-    areasHit[target] = true;
-  }
-}
-
-let win;
-do {
-  win = rls.question(
-    "You have destroyed all battleships. Would you like to play again? (Y/N): "
+const restartGame = () => {
+  const win = Object.values(shipLocations).every((row) =>
+    Object.values(row).every((cell) => !cell)
   );
-} while (win.toUpperCase() !== "Y" && win.toUpperCase() !== "N");
+  if (win) {
+    shipLocations = {};
+    areasHit = {};
+    placeShips();
 
-if (win.toUpperCase() === "Y") {
-  shipLocations = {};
-  areasHit = {};
-  placeShips(numOfShips);
-  numOfShips = 2;
-  console.log("Battleship Game - Grid Layout:");
-  const newGrid = buildGrid(gridSize);
-  for (let i = 0; i < gridSize; i++) {
-    console.log(newGrid[i].join(" "));
+    gameplay();
   }
-} else {
-  console.log("Thank you for playing!");
-}
+};
+
+const gameplay = () => {
+  while (
+    Object.values(shipLocations).some((row) =>
+      Object.values(row).some((cell) => cell)
+    )
+  ) {
+    console.log("Battleship Game - Grid Layout:");
+    const grid = buildGrid(gridSize);
+    for (let i = 0; i < gridSize; i++) {
+      console.log(grid[i].join(" "));
+    }
+
+    const target = rls.question("Enter a location to strike (e.g., A2): ");
+
+    const row = rows.indexOf(target[0].toUpperCase());
+    const col = parseInt(target.substring(1)) - 1;
+
+    if (areasHit[target]) {
+      console.log("You have already picked this location. Miss!");
+    } else if (shipLocations[row] && shipLocations[row][col] === true) {
+      areasHit[target] = true;
+      shipLocations[row][col] = false;
+      console.log("Hit! You have hit a battleship!");
+    } else {
+      console.log("Miss!");
+      areasHit[target] = true;
+    }
+  }
+
+  const win = rls.keyInYNStrict("You have won! Would you like to play again? ");
+  if (win) {
+    restartGame();
+  }
+};
+
+gameplay();
